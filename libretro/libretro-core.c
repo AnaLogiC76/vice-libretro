@@ -89,6 +89,7 @@ extern int RETROTDE;
 extern int RETRODSE;
 extern int RETRORESET;
 extern int RETROSIDMODL;
+extern int RETROSID8580FILTER;
 extern int RETRORESIDSAMPLING;
 extern int RETROSOUNDSAMPLERATE;
 extern int RETROAUDIOLEAK;
@@ -1103,6 +1104,17 @@ void retro_set_environment(retro_environment_t cb)
             { NULL, NULL },
          },
          "DefaultR"
+      },
+      {
+         "vice_resid_filter8580new",
+         "ReSID VICE 3.3 Experimental Filter Model",
+         "The VICE 3.3 model is sometimes more compatible but can have audible artefacts, if unsure leave it disabled to use the model from VICE 2.4.",
+         {
+            { "disabled", NULL },
+            { "enabled", NULL },
+            { NULL, NULL },
+         },
+         "disabled"
       },
       {
          "vice_resid_sampling",
@@ -2207,6 +2219,24 @@ static void update_variables(void)
       RETROSIDMODL=sidmdl;
    }
 
+   var.key = "vice_resid_filter8580new";
+   var.value = NULL;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      int filter8580new=0;
+      if (strcmp(var.value, "enabled") == 0) filter8580new=1;
+
+      if (retro_ui_finalized)
+         if (RETROSID8580FILTER != filter8580new)
+         {
+            RETROSID8580FILTER=filter8580new;
+            /* re-set engine model to apply switch of filter engine */
+            resources_set_int("SidEngine", RETROSIDMODL>>8);
+         }
+
+      RETROSID8580FILTER=filter8580new;
+   }
+
    var.key = "vice_resid_sampling";
    var.value = NULL;
    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
@@ -2956,6 +2986,8 @@ static void update_variables(void)
    environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
 #if !defined(__PET__) && !defined(__PLUS4__) && !defined(__VIC20__)
    option_display.key = "vice_sid_model";
+   environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
+   option_display.key = "vice_resid_filter8580new";
    environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
    option_display.key = "vice_resid_sampling";
    environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);

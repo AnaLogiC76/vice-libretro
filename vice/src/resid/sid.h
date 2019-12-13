@@ -24,10 +24,14 @@
 
 #include "resid-config.h"
 #include "voice.h"
+#ifdef __LIBRETRO__
+#include "filter_proxy.h"
+#else
 #if NEW_8580_FILTER
 #include "filter8580new.h"
 #else
 #include "filter.h"
+#endif
 #endif
 #include "extfilt.h"
 #include "pot.h"
@@ -110,7 +114,12 @@ public:
 
   chip_model sid_model;
   Voice voice[3];
+#ifdef __LIBRETRO__
+  Filter_proxy::Create filter_create;
+  Filter_proxy::InstanceRef &filter=filter_create;
+#else
   Filter filter;
+#endif
   ExternalFilter extfilt;
   Potentiometer potx;
   Potentiometer poty;

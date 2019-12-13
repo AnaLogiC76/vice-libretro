@@ -52,6 +52,7 @@ struct sid_snapshot_state_s;
 #define SID_MODEL_8580D          2
 #define SID_MODEL_6581R4         3
 #define SID_MODEL_DTVSID         4
+#define SID_MODEL_8580NF         5
 #define SID_MODEL_DEFAULT       99
 
 /* these definitions are the only valid combinations of
@@ -62,6 +63,7 @@ struct sid_snapshot_state_s;
 #define SID_RESID_6581            ((SID_ENGINE_RESID << 8) | SID_MODEL_6581)
 #define SID_RESID_8580            ((SID_ENGINE_RESID << 8) | SID_MODEL_8580)
 #define SID_RESID_8580D           ((SID_ENGINE_RESID << 8) | SID_MODEL_8580D)
+#define SID_RESID_8580NF          ((SID_ENGINE_RESID << 8) | SID_MODEL_8580NF)
 #define SID_RESID_DTVSID          ((SID_ENGINE_RESID << 8) | SID_MODEL_DTVSID)
 #define SID_CATWEASELMKIII        (SID_ENGINE_CATWEASELMKIII << 8)
 #define SID_HARDSID               (SID_ENGINE_HARDSID << 8)

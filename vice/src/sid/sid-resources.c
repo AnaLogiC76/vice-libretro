@@ -475,6 +475,7 @@ static sid_engine_model_t sid_engine_models_resid[] = {
     { "6581 (ReSID)", SID_RESID_6581 },
     { "8580 (ReSID)", SID_RESID_8580 },
     { "8580 + digi boost (ReSID)", SID_RESID_8580D },
+    { "8580 + new filter (ReSID)", SID_RESID_8580NF },
     { NULL, -1 }
 };
 #endif
@@ -582,6 +583,7 @@ static int sid_check_engine_model(int engine, int model)
         case SID_RESID_6581:
         case SID_RESID_8580:
         case SID_RESID_8580D:
+		case SID_RESID_8580NF:
 #endif
             return 0;
 #ifdef HAVE_RESID_DTV

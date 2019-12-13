@@ -1099,6 +1099,7 @@ void retro_set_environment(retro_environment_t cb)
             { "6581R", "6581 ReSID" },
             { "8580F", "8580 FastSID" },
             { "8580R", "8580 ReSID" },
+			{ "8580R+F", "8580 ReSID + New Filter" },
             { "8580RD", "8580 ReSID + Digi Boost" },
             { NULL, NULL },
          },
@@ -2195,6 +2196,7 @@ static void update_variables(void)
       else if (strcmp(var.value, "8580RD") == 0) { eng=1; modl=2; }
       else if (strcmp(var.value, "DefaultF") == 0) { eng=0; modl=0xff; }
       else if (strcmp(var.value, "DefaultR") == 0) { eng=1; modl=0xff; }
+      else if (strcmp(var.value, "8580R+F") == 0) { eng=1; modl=5; }
 
       sidmdl=((eng << 8) | modl);
       if (retro_ui_finalized)

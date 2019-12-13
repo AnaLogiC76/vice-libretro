@@ -24,10 +24,29 @@
 
 #include "resid-config.h"
 #include "voice.h"
+#ifdef __LIBRETRO__
+#include <stdio.h>
+#include "filter.h"
+namespace reSID { class SID; }
+namespace RESID_NEW_8580_FILTER {
+using reSID::chip_model;
+using reSID::reg4;
+using reSID::reg8;
+using reSID::reg12;
+using reSID::cycle_count;
+#define SID ::reSID::SID;
+#undef RESID_FILTER_H
+#include "filter8580new.h"
+#undef SID
+}
+typedef ::RESID_NEW_8580_FILTER::reSID::Filter Filter_new;
+#include <algorithm>
+#else
 #if NEW_8580_FILTER
 #include "filter8580new.h"
 #else
 #include "filter.h"
+#endif
 #endif
 #include "extfilt.h"
 #include "pot.h"
@@ -110,7 +129,78 @@ public:
 
   chip_model sid_model;
   Voice voice[3];
-  Filter filter;
+  template<class F> class Filter_wrap
+  {
+	  char raw[std::max(sizeof(Filter),sizeof(Filter_new))];
+	  F &f=*(F *)raw;
+
+  public :
+	  Filter_wrap()
+	  {
+		  new(raw) F();
+	  }
+	  void set(int variant)
+	  {
+		  f.~F();
+
+		  switch (variant)
+		  {
+		  case 1:
+			  new(this) Filter_wrap<Filter_new>();
+			  break;
+		  default:
+			  new(this) Filter_wrap<Filter>();
+			  break;
+		  }
+	  }
+	  // Forwarding functions from filter.h
+	  virtual void enable_filter(bool enable) { f.enable_filter(enable); }
+	  virtual void adjust_filter_bias(double dac_bias) { f.adjust_filter_bias(dac_bias); }
+	  virtual void set_chip_model(chip_model &model)
+	  {
+		  if (model==MS8580_NF)
+		  {
+			  set(1);
+			  printf("With new filters\n");
+			  model=MOS8580;
+		  }
+		  else
+		  {
+			  set(0);
+			  printf("With old filters\n");
+		  }
+		  f.set_chip_model(model);
+	  }
+	  virtual void set_voice_mask(reg4 mask) { f.set_voice_mask(mask); }
+
+	  virtual void clock(int voice1, int voice2, int voice3) { f.clock(voice1,voice2,voice3); }
+	  virtual void clock(cycle_count delta_t, int voice1, int voice2, int voice3) { f.clock(delta_t,voice1,voice2,voice3); }
+	  virtual void reset() { f.reset(); }
+
+	  // Write registers.
+	  virtual void writeFC_LO(reg8 v) { f.writeFC_LO(v); }
+	  virtual void writeFC_HI(reg8 v) { f.writeFC_HI(v); }
+	  virtual void writeRES_FILT(reg8 v) { f.writeRES_FILT(v); }
+	  virtual void writeMODE_VOL(reg8 v) { f.writeMODE_VOL(v); }
+
+	  // SID audio input (16 bits).
+	  virtual void input(short sample) { f.input(sample); }
+
+	  // SID audio output (16 bits).
+	  virtual short output() { return f.output(); }
+
+#define FWD_VAR(type,name) \
+	  struct _get_ ## name { F &f;_get_ ## name(F &f) : f(f) { };operator type() { return f.name; } } name=f;
+
+	  FWD_VAR(reg12, fc)
+	  FWD_VAR(reg8, res)
+	  FWD_VAR(reg4, mode)
+	  FWD_VAR(reg8, filt)
+	  FWD_VAR(reg4, vol)
+	  FWD_VAR(reg8, voice_mask)
+#undef FWD_VAR
+  };
+  Filter_wrap<Filter> filter;
   ExternalFilter extfilt;
   Potentiometer potx;
   Potentiometer poty;

@@ -69,7 +69,7 @@ typedef int cycle_count;
 typedef short short_point[2];
 typedef double double_point[2];
 
-enum chip_model { MOS6581, MOS8580 };
+enum chip_model { MOS6581, MOS8580, MS8580_NF };
 
 enum sampling_method {
     SAMPLE_FAST, 

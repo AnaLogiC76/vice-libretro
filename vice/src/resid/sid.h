@@ -27,7 +27,7 @@
 #ifdef __LIBRETRO__
 #include <stdio.h>
 #include "filter.h"
-extern bool filter8580new;
+extern int RETROSID8580FILTER;
 namespace reSID { class SID; }
 namespace RESID_NEW_8580_FILTER {
 using reSID::chip_model;
@@ -150,21 +150,18 @@ public:
 	  Filter_wrap(SID &s, Filter &)
 		  :	BASE(s),f(s.filter_old)
 	  {
-		  printf("Filter_wrap<Filter>\n");
-		  printf("ctor *this=%p &f=%p\n",*(unsigned long long *)this,&f);
+		  printf("Filter_wrap<Filter_old> &f=%p\n",&f);
 	  }
 	  Filter_wrap(SID &s, Filter_new &)
 		  : BASE(s),f(s.filter_new)
 	  {
-		  printf("Filter_wrap<Filter_new>\n");
-		  printf("ctor *this=%p &f=%p\n",*(unsigned long long *)this,&f);
+		  printf("Filter_wrap<Filter_new> &f=%p\n",&f);
 	  }
 	  Filter_wrap(SID &s, Filter_wrap<Filter, Filter_base> &)
 		  : BASE(s),f(*(Filter_wrap<Filter, Filter_base> *)&s.filter_fwd)
 	  {
-		  printf("Filter_wrap<root>\n");
-		  printf("ctor *this=%p &f=%p\n",*(unsigned long long *)this,&f);
-		  set(filter8580new,MOS8580);
+		  printf("Filter_wrap<root>       &f=%p\n",&f);
+		  set(RETROSID8580FILTER,MOS8580);
 	  }
   public :
 	  Filter_wrap(SID &sid)
@@ -209,31 +206,15 @@ public:
 	  }
 	  void set_chip_model(chip_model model, Filter_wrap<Filter, Filter_base> &)
 	  {
-		  if (filter8580new)
-		  {
-			  set(1,model);
-			  printf("With new filters\n");
-		  }
-		  else
-		  {
-			  set(0,model);
-			  printf("With old filters\n");
-		  }
-		  printf("%p.set_chip_model &f=%p output=%p\n",*(unsigned long long *)this,&f,&output);
-		  printf("Would crash soon\n");
-//		  printf("HÄ???\n");
-//		  f.set_chip_model(model);
+		set(RETROSID8580FILTER,model);
+		printf("With %s filters\n",RETROSID8580FILTER ? "new" : "old");
 	  }
-	  template<class ANY> void set_chip_model(chip_model &model, ANY &)
-	  {
-		  printf("&p.set_chip_model()\n",*(unsigned long long *)this);
-		  f.set_chip_model(model);
-	  }
-	  virtual void set_voice_mask(reg4 mask) { printf("%p=>%p.set_voice_mask() output=%p\n",*(unsigned long long *)this,&f,&output);f.set_voice_mask(mask); }
+	  template<class ANY> void set_chip_model(chip_model model, ANY &) { f.set_chip_model(model); }
+	  virtual void set_voice_mask(reg4 mask) { f.set_voice_mask(mask); }
 
-	  virtual void clock(int voice1, int voice2, int voice3) { if (++test<10) { printf("%p.clock[1]()\n",*(unsigned long long *)this); } f.clock(voice1,voice2,voice3); }
-	  virtual void clock(cycle_count delta_t, int voice1, int voice2, int voice3) { if (++test<10) { printf("%p=>%p.clock[2]()\n",*(unsigned long long *)this,&f); } f.clock(delta_t,voice1,voice2,voice3); }
-	  virtual void reset() { printf("%p.reset()\n",*(unsigned long long *)this);f.reset(); }
+	  virtual void clock(int voice1, int voice2, int voice3) { f.clock(voice1,voice2,voice3); }
+	  virtual void clock(cycle_count delta_t, int voice1, int voice2, int voice3) { f.clock(delta_t,voice1,voice2,voice3); }
+	  virtual void reset() { f.reset(); }
 
 	  // Write registers.
 	  virtual void writeFC_LO(reg8 v) { f.writeFC_LO(v); }
@@ -242,10 +223,10 @@ public:
 	  virtual void writeMODE_VOL(reg8 v) { f.writeMODE_VOL(v); }
 
 	  // SID audio input (16 bits).
-	  virtual void input(short sample) { printf("%p=>%p.input()\n",*(unsigned long long *)this,&f);f.input(sample); }
+	  virtual void input(short sample) { f.input(sample); }
 
 	  // SID audio output (16 bits).
-	  virtual short output() { if (++test<10) { printf("%p=>%p.output()\n",*(unsigned long long *)this,&f); } return f.output(); }
+	  virtual short output() { return f.output(); }
 
 #if 0
 #define FWD_VAR(type,name) \

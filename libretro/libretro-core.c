@@ -2228,8 +2228,11 @@ static void update_variables(void)
 
       if (retro_ui_finalized)
          if (RETROSID8580FILTER != filter8580new)
+         {
+            RETROSID8580FILTER=filter8580new;
             /* re-set engine model to apply switch of filter engine */
-            sid_set_engine_model((RETROSIDMODL >> 8), (RETROSIDMODL & 0xff));
+            resources_set_int("SidEngine", RETROSIDMODL>>8);
+         }
 
       RETROSID8580FILTER=filter8580new;
    }

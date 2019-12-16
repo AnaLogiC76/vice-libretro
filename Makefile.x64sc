@@ -38,7 +38,7 @@ SOURCES_CC += \
         $(EMU)/resid/envelope.cc \
         $(EMU)/resid/extfilt.cc \
         $(EMU)/resid/filter.cc \
-        $(EMU)/resid/wrap_filter8580new.cc \
+        $(EMU)/resid/filter_proxy.cc \
         $(EMU)/resid/pot.cc \
         $(EMU)/resid/sid.cc \
         $(EMU)/resid/version.cc \

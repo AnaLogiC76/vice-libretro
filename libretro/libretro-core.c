@@ -1100,11 +1100,21 @@ void retro_set_environment(retro_environment_t cb)
             { "6581R", "6581 ReSID" },
             { "8580F", "8580 FastSID" },
             { "8580R", "8580 ReSID" },
-			{ "8580R+F", "8580 ReSID + New Filter" },
             { "8580RD", "8580 ReSID + Digi Boost" },
             { NULL, NULL },
          },
          "DefaultR"
+      },
+      {
+         "vice_resid_filter8580new",
+         "ReSID VICE 3.3 Experimental Filter Model",
+         "The VICE 3.3 model is sometimes more compatible but can have audible artefacts, if unsure leave it disabled to use the model from VICE 2.4.",
+         {
+            { "disabled", NULL },
+            { "enabled", NULL },
+            { NULL, NULL },
+         },
+         "disabled"
       },
       {
          "vice_resid_sampling",
@@ -2190,7 +2200,6 @@ static void update_variables(void)
    {
       int eng=0,modl=0,sidmdl=0;
 
-      int filter8580new=0;
       if (strcmp(var.value, "6581F") == 0) { eng=0; modl=0; }
       else if (strcmp(var.value, "8580F") == 0) { eng=0; modl=1; }
       else if (strcmp(var.value, "6581R") == 0) { eng=1; modl=0; }
@@ -2198,18 +2207,31 @@ static void update_variables(void)
       else if (strcmp(var.value, "8580RD") == 0) { eng=1; modl=2; }
       else if (strcmp(var.value, "DefaultF") == 0) { eng=0; modl=0xff; }
       else if (strcmp(var.value, "DefaultR") == 0) { eng=1; modl=0xff; }
-      else if (strcmp(var.value, "8580R+F") == 0) { eng=1; modl=1; filter8580new=1; }
 
       sidmdl=((eng << 8) | modl);
       if (retro_ui_finalized)
-         if (RETROSIDMODL != sidmdl || RETROSID8580FILTER != filter8580new)
+         if (RETROSIDMODL != sidmdl)
             if (modl == 0xff)
                resources_set_int("SidEngine", eng);
             else
                sid_set_engine_model(eng, modl);
 
       RETROSIDMODL=sidmdl;
-	  RETROSID8580FILTER=filter8580new;
+   }
+
+   var.key = "vice_resid_filter8580new";
+   var.value = NULL;
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+   {
+      int filter8580new=0;
+      if (strcmp(var.value, "enabled") == 0) filter8580new=1;
+
+      if (retro_ui_finalized)
+         if (RETROSID8580FILTER != filter8580new)
+            /* re-set engine model to apply switch of filter engine */
+            sid_set_engine_model((RETROSIDMODL >> 8), (RETROSIDMODL & 0xff));
+
+      RETROSID8580FILTER=filter8580new;
    }
 
    var.key = "vice_resid_sampling";

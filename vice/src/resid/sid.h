@@ -130,112 +130,37 @@ public:
 
   chip_model sid_model;
   Voice voice[3];
-  Filter filter_old;
-  Filter_new filter_new;
-  class Filter_base
-  {
-  protected :
-	  SID &s;
 
-	  Filter_base(SID &sid)
-		  : s(sid)
-	  {
-	  }
-  };
-  template<class F, class BASE> class Filter_wrap : public BASE
+  /* Emulate class Filter by forwarding everything to Filter-compatible instance f in base-class
+  As a bonus, variables directly accessed for saving state are read-only by design. */
+  template<class Filter_instance> struct Filter_wrap : public Filter_instance
   {
-	  int test=0;
-	  F &f;
-
-	  Filter_wrap(SID &s, Filter &)
-		  :	BASE(s),f(s.filter_old)
-	  {
-		  printf("Filter_wrap<Filter_old> &f=%p\n",&f);
-	  }
-	  Filter_wrap(SID &s, Filter_new &)
-		  : BASE(s),f(s.filter_new)
-	  {
-		  printf("Filter_wrap<Filter_new> &f=%p\n",&f);
-	  }
-	  Filter_wrap(SID &s, Filter_wrap<Filter, Filter_base> &)
-		  : BASE(s),f(*(Filter_wrap<Filter, Filter_base> *)&s.filter_fwd)
-	  {
-		  printf("Filter_wrap<root>       &f=%p\n",&f);
-		  set(RETROSID8580FILTER,MOS8580);
-	  }
   public :
-	  Filter_wrap(SID &sid)
-	:	Filter_wrap(sid, *(F *)nullptr)
-	  {
-	  }
-	  void reinit(chip_model model)
-	  {
-		  printf("%p.reinit &f=%p output=%p\n",*(unsigned long long *)this,&f,&output);
-		  f.enable_filter(true);
-		  f.set_chip_model(model);
-		  f.set_voice_mask(7);
-		  f.input(0);
-		  f.reset();
-	  }
-	  void set(int variant, chip_model model)
-	  {
-		  printf("%p.set_begin &f=%p\n",*(unsigned long long *)this, &f);
-		  switch (variant)
-		  {
-		  case 1:
-		  {
-			  auto p=new(&this->s.filter_fwd) Filter_wrap<Filter_new,Filter_wrap<Filter,Filter_base > >(this->s);
-			  p->reinit(model);
-		  }
-			  break;
-		  default:
-		  {
-			  auto p=new(&this->s.filter_fwd) Filter_wrap<Filter,Filter_base>(this->s);
-			  p->reinit(model);
-		  }
-			  break;
-		  }
-		  printf("%p=>%p.set_end\n",*(unsigned long long *)this, &f);
-	  }
 	  // Forwarding functions from filter.h
-	  virtual void enable_filter(bool enable) { f.enable_filter(enable); }
-	  virtual void adjust_filter_bias(double dac_bias) { f.adjust_filter_bias(dac_bias); }
-	  virtual void set_chip_model(chip_model model)
-	  {
-		  set_chip_model(model, *(F *)nullptr);
-	  }
-	  void set_chip_model(chip_model model, Filter_wrap<Filter, Filter_base> &)
-	  {
-		set(RETROSID8580FILTER,model);
-		printf("With %s filters\n",RETROSID8580FILTER ? "new" : "old");
-	  }
-	  template<class ANY> void set_chip_model(chip_model model, ANY &) { f.set_chip_model(model); }
-	  virtual void set_voice_mask(reg4 mask) { f.set_voice_mask(mask); }
+	  virtual void enable_filter(bool enable) { this->f.enable_filter(enable); }
+	  virtual void adjust_filter_bias(double dac_bias) { this->f.adjust_filter_bias(dac_bias); }
+	  virtual void set_chip_model(chip_model model) { this->f.set_chip_model(model); }
+	  virtual void set_voice_mask(reg4 mask) { this->f.set_voice_mask(mask); }
 
-	  virtual void clock(int voice1, int voice2, int voice3) { f.clock(voice1,voice2,voice3); }
-	  virtual void clock(cycle_count delta_t, int voice1, int voice2, int voice3) { f.clock(delta_t,voice1,voice2,voice3); }
-	  virtual void reset() { f.reset(); }
+	  virtual void clock(int voice1, int voice2, int voice3) { this->f.clock(voice1,voice2,voice3); }
+	  virtual void clock(cycle_count delta_t, int voice1, int voice2, int voice3) { this->f.clock(delta_t,voice1,voice2,voice3); }
+	  virtual void reset() { this->f.reset(); }
 
 	  // Write registers.
-	  virtual void writeFC_LO(reg8 v) { f.writeFC_LO(v); }
-	  virtual void writeFC_HI(reg8 v) { f.writeFC_HI(v); }
-	  virtual void writeRES_FILT(reg8 v) { f.writeRES_FILT(v); }
-	  virtual void writeMODE_VOL(reg8 v) { f.writeMODE_VOL(v); }
+	  virtual void writeFC_LO(reg8 v) { this->f.writeFC_LO(v); }
+	  virtual void writeFC_HI(reg8 v) { this->f.writeFC_HI(v); }
+	  virtual void writeRES_FILT(reg8 v) { this->f.writeRES_FILT(v); }
+	  virtual void writeMODE_VOL(reg8 v) { this->f.writeMODE_VOL(v); }
 
 	  // SID audio input (16 bits).
-	  virtual void input(short sample) { f.input(sample); }
+	  virtual void input(short sample) { this->f.input(sample); }
 
 	  // SID audio output (16 bits).
-	  virtual short output() { return f.output(); }
+	  virtual short output() { return this->f.output(); }
 
-#if 0
 #define FWD_VAR(type,name) \
-	  struct _get_ ## name { F &f;_get_ ## name(F &f) : f(f) { };operator type() { printf("%p._get_"#name"()\n",this);return f.name; } } name=f;
-#else
-#define FWD_VAR(type,name) \
-	  virtual type _getf_ ## name () { printf("%p._getf_"#name"()\n",this);return f.name; } \
+	  virtual type _getf_ ## name () { printf("%p._getf_"#name"()\n",this);return this->f.name; } \
 	  struct _get_ ## name { Filter_wrap &o;_get_ ## name(Filter_wrap &o) : o(o) { };operator type() { return o._getf_ ## name(); } } name=*this;
-#endif
 
 	  FWD_VAR(reg12, fc)
 	  FWD_VAR(reg8, res)
@@ -245,8 +170,36 @@ public:
 	  FWD_VAR(reg8, voice_mask)
 #undef FWD_VAR
   };
-  char filter_fwd[std::max(sizeof(Filter_wrap<Filter, Filter_base>),sizeof(Filter_wrap<Filter_new, Filter_wrap<Filter, Filter_base > >))];
-  Filter_wrap<Filter_wrap<Filter, Filter_base>, Filter_base> filter=*this;
+  /* Filter_wrap_base needs to declare all functions virtual, as all functions are overloaded
+  f is never actually accessed so its value doesn't matter. */
+  class Filter_noinstance { protected : Filter &f=*(Filter *)nullptr; };
+  typedef Filter_wrap< Filter_noinstance > Filter_wrap_base;
+  /* Instantiate filter, overwriting the unusable f-reference in base. */
+  template<class F> class Filter_instance : public Filter_wrap_base { protected : F f; };
+  typedef Filter_wrap< Filter_instance<Filter> > Filter_wrap_old;
+  typedef Filter_wrap< Filter_instance<Filter_new> > Filter_wrap_new;
+
+  struct Filter_wrap_setup
+  {
+	  union
+	  {
+		  char _old[sizeof(Filter_wrap_old)];
+		  char _new[sizeof(Filter_wrap_new)];
+	  } filter;
+
+	  Filter_wrap_setup()
+	  {
+		  printf("Filter_wrap_setup %d\n",RETROSID8580FILTER);
+		  if (RETROSID8580FILTER)
+			  new(filter._new) Filter_wrap_new();
+		  else
+			  new(filter._old) Filter_wrap_old();
+		  printf("Filter_wrap_setup done\n");
+	  }
+	  operator Filter_wrap_base &() { return *(Filter_wrap_base *)filter._old; }
+  };
+  Filter_wrap_setup filter_wrap;
+  Filter_wrap_base &filter=filter_wrap;
   ExternalFilter extfilt;
   Potentiometer potx;
   Potentiometer poty;

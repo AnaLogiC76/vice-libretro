@@ -31,6 +31,10 @@
 #define round(x) (x>=0.0?floor(x+0.5):ceil(x-0.5))
 #endif
 
+#include <stdio.h>
+
+bool filter8580new=false;
+
 namespace reSID
 {
 
@@ -39,6 +43,7 @@ namespace reSID
 // ----------------------------------------------------------------------------
 SID::SID()
 {
+	printf("%p.SID()\n",this);
   // Initialize pointers.
   sample = 0;
   fir = 0;

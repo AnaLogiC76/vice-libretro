@@ -204,12 +204,6 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
         /* resid-dtv has only the DTVSID model and no ext input*/
         strcpy(model_text, "DTVSID");
         break;
-      case 5:
-        psid->sid->set_chip_model(MS8580_NF);
-        psid->sid->set_voice_mask(0x07);
-        psid->sid->input(0);
-        strcpy(model_text, "MOS8580 + New Filter");
-        break;
     }
     psid->sid->enable_filter(filters_enabled ? true : false);
     psid->sid->adjust_filter_bias(filter_bias_mV / 1000.0);

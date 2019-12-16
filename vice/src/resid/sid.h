@@ -114,8 +114,12 @@ public:
 
   chip_model sid_model;
   Voice voice[3];
-  Filter_proxy::Filter_wrap_setup filter_wrap;
-  Filter_proxy::Filter_wrap_base &filter=filter_wrap;
+#ifdef __LIBRETRO__
+  Filter_proxy::Create filter_create;
+  Filter_proxy::InstanceRef &filter=filter_create;
+#else
+  Filter filter;
+#endif
   ExternalFilter extfilt;
   Potentiometer potx;
   Potentiometer poty;

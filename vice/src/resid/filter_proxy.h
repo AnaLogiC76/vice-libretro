@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <new>
 
 extern int RETROSID8580FILTER;
@@ -53,7 +52,7 @@ namespace reSID {
       virtual short output() { return this->f.output(); }
 
 #define FWD_VAR(type,name) \
-      virtual type _getf_ ## name () { printf("%p._getf_"#name"()\n",this);return this->f.name; } \
+      virtual type _getf_ ## name () { return this->f.name; } \
       struct _get_ ## name { Forward &o;_get_ ## name(Forward &o) : o(o) { };operator type() { return o._getf_ ## name(); } } name=*this;
 
       FWD_VAR(reg12, fc)
@@ -88,20 +87,16 @@ namespace reSID {
     public :
       Create()
       {
-        printf("Create %d\n",RETROSID8580FILTER);
         if (RETROSID8580FILTER)
           new(filter._new) Forward_Filter_new();
         else
           new(filter._old) Forward_Filter();
-        printf("Create done\n");
       }
 	  /* Currently completely unnecessary as neither Filter-class has a destructor, but maybe one day
 	  one of them has. */
       ~Create()
       {
-        printf("~Create %d\n",RETROSID8580FILTER);
         ((Forward_Filter_new *)filter._new)->~Forward_Filter_new();
-        printf("~Setup done\n");
       }
       operator InstanceRef &() { return *(InstanceRef *)filter._old; }
     };

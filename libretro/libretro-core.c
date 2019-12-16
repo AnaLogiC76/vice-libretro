@@ -2987,6 +2987,8 @@ static void update_variables(void)
 #if !defined(__PET__) && !defined(__PLUS4__) && !defined(__VIC20__)
    option_display.key = "vice_sid_model";
    environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
+   option_display.key = "vice_resid_filter8580new";
+   environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
    option_display.key = "vice_resid_sampling";
    environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
 #endif

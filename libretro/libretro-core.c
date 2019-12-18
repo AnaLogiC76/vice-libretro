@@ -3340,6 +3340,8 @@ void retro_init(void)
    microSecCounter = 0;
 }
 
+extern void resid_dump_close();
+
 void retro_deinit(void)
 {
    /* Clean the disk control context */
@@ -3349,6 +3351,7 @@ void retro_deinit(void)
    {
 	   free(core_options_legacy_strings);
    }
+   resid_dump_close();
 }
 
 unsigned retro_api_version(void)

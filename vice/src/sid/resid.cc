@@ -119,6 +119,21 @@ static sound_t *resid_open(uint8_t *sidstate)
     return psid;
 }
 
+static FILE *wav_fd = NULL;
+static int samples = 0;
+static uint32_t rate;
+static bool wait0;
+
+/* Store number as little endian. */
+static void le_store(uint8_t *buf, uint32_t val, int len)
+{
+    int i;
+    for (i = 0; i < len; i++) {
+        buf[i] = (uint8_t)(val & 0xff);
+        val >>= 8;
+    }
+}
+
 static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
 {
     sampling_method method;
@@ -241,7 +256,62 @@ static int resid_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
                 filters_enabled ? "on" : "off",
                 speed, method_text);
 
+    /* RIFF/WAV header. */
+    unsigned char header[45] = "RIFFllllWAVEfmt \020\0\0\0\001\0ccrrrrbbbb88\020\0datallll";
+    uint32_t sample_rate = rate = (uint32_t)speed;
+	uint32_t channels=1;
+    uint32_t bytes_per_sec = (uint32_t)(speed * channels * 2);
+
+    wav_fd = fopen("d:/temp/global/tmp.wav", "wb");
+    if (!wav_fd) {
+		printf("wav_fd open failed\n");
+        return 1;
+    }
+
+    /* Reset number of samples. */
+    samples = 0;
+
+    /* Initialize header. */
+    le_store(header + 22, (uint32_t)channels, 2);
+    le_store(header + 24, sample_rate, 4);
+    le_store(header + 28, bytes_per_sec, 4);
+    le_store(header + 32, (uint32_t)channels * 2, 2);
+
+    fwrite(header, 1, 44, wav_fd);
+	wait0=true;
+	printf("wav_open\n");
+
     return 1;
+}
+
+void resid_dump_close()
+{
+	if (!wav_fd)
+		return;
+
+	printf("wav_close\n");
+    int res = -1;
+    uint8_t rlen[4];
+    uint8_t dlen[4];
+    uint32_t rifflen = (uint32_t)(samples * 2 + 36);
+    uint32_t datalen = (uint32_t)(samples * 2);
+
+    le_store(rlen, rifflen, 4);
+    le_store(dlen, datalen, 4);
+
+    fseek(wav_fd, 4, SEEK_SET);
+    if (fwrite(rlen, 1, 4, wav_fd) == 4) {
+        fseek(wav_fd, 32, SEEK_CUR);
+        if (fwrite(dlen, 1, 4, wav_fd) == 4) {
+            res = 0;
+        }
+    }
+
+    fclose(wav_fd);
+    wav_fd = NULL;
+    if (res != 0) {
+        log_debug("ERROR wav_close failed.");
+    }
 }
 
 static void resid_close(sound_t *psid)
@@ -253,6 +323,7 @@ static void resid_close(sound_t *psid)
         lib_free(buf);
         buf = NULL;
     }
+	resid_dump_close();
 }
 
 static uint8_t resid_read(sound_t *psid, uint16_t addr)
@@ -277,7 +348,28 @@ static int resid_calculate_samples(sound_t *psid, short *pbuf, int nr,
     int retval;
 
     if (psid->factor == 1000) {
-        return psid->sid->clock(*delta_t, pbuf, nr, interleave);
+        int r=psid->sid->clock(*delta_t, pbuf, nr, interleave);
+	short *p_start=pbuf, *p_end=pbuf+r;
+	if (wait0)
+	{
+		while (p_start!=p_end && *p_start) ++p_start;
+		if (p_start==p_end)
+			return r;
+		wait0=false;
+		printf("%.3fs skipped in wait0\n",float(p_start-pbuf)/rate);
+	}
+	else
+	{
+		while (p_start!=p_end && !*p_start) ++p_start;
+		while (p_start!=p_end && !*(p_end-1)) --p_end;
+	}
+    fwrite(pbuf, sizeof(int16_t), p_end-p_start, wav_fd);
+	int s_old=samples/rate;
+    samples += p_end-p_start;
+	int s_new=samples/rate;
+	if (s_old!=s_new)
+		printf("%ds recorded\n",s_new);
+		return r;
     }
     tmp_buf = getbuf(2 * nr * psid->factor / 1000);
     retval = psid->sid->clock(*delta_t, tmp_buf, nr * psid->factor / 1000, interleave) * 1000 / psid->factor;

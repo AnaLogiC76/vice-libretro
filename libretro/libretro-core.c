@@ -1820,6 +1820,10 @@ void retro_set_environment(retro_environment_t cb)
             }
             buf=core_options_legacy_strings=(char *)malloc(alloc_len);
             buf_len=alloc_len;
+//#define CO_DBG
+#ifdef CO_DBG
+            printf("%d require %d bytes of string-space\n",NUM_CORE_OPTIONS,alloc_len);
+#endif
          }
          /* Second pass: Fill string-buffer */
          struct retro_core_option_definition *o=core_options+NUM_CORE_OPTIONS-1;
@@ -1836,6 +1840,16 @@ void retro_set_environment(retro_environment_t cb)
             ++l;
             buf+=l, buf_len-=l;
          }
+#ifdef CO_DBG
+         int i=0;
+         static struct retro_variable *v=variables;
+         while (v->key || v->value)
+         {
+            printf("%d %p '%s' => %p '%s'\n",i++,v->key,v->key,v->value,v->value);
+            ++v;
+         }
+         printf("%d allocated %d bytes\n",NUM_CORE_OPTIONS,buf-(variables[NUM_CORE_OPTIONS-1].value));
+#endif
       }
       cb( RETRO_ENVIRONMENT_SET_VARIABLES, variables);
 #undef NUM_CORE_OPTIONS

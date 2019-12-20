@@ -56,6 +56,7 @@
 
 #ifdef HAVE_RESID
 #include "resid.h"
+extern sid_engine_t residfp_hooks;
 #endif
 
 /* SID engine hooks. */
@@ -340,7 +341,8 @@ sound_t *sid_sound_machine_open(int chipno)
 
 #ifdef HAVE_RESID
     if (sidengine == SID_ENGINE_RESID) {
-        sid_engine = resid_hooks;
+//        sid_engine = resid_hooks;
+        sid_engine = residfp_hooks;
     }
 #endif
 

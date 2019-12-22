@@ -45,6 +45,9 @@ struct sid_snapshot_state_s;
 #define SID_ENGINE_HARDSID        3
 #define SID_ENGINE_PARSID         4
 #define SID_ENGINE_SSI2001        5
+#ifdef __LIBRETRO__
+#define SID_ENGINE_RESIDFP        6
+#endif
 #define SID_ENGINE_DEFAULT       99
 
 #define SID_MODEL_6581           0
@@ -63,6 +66,11 @@ struct sid_snapshot_state_s;
 #define SID_RESID_8580            ((SID_ENGINE_RESID << 8) | SID_MODEL_8580)
 #define SID_RESID_8580D           ((SID_ENGINE_RESID << 8) | SID_MODEL_8580D)
 #define SID_RESID_DTVSID          ((SID_ENGINE_RESID << 8) | SID_MODEL_DTVSID)
+#ifdef __LIBRETRO__
+#define SID_RESIDFP_6581          ((SID_ENGINE_RESIDFP << 8) | SID_MODEL_6581)
+#define SID_RESIDFP_8580          ((SID_ENGINE_RESIDFP << 8) | SID_MODEL_8580)
+#define SID_RESIDFP_8580D         ((SID_ENGINE_RESIDFP << 8) | SID_MODEL_8580D)
+#endif
 #define SID_CATWEASELMKIII        (SID_ENGINE_CATWEASELMKIII << 8)
 #define SID_HARDSID               (SID_ENGINE_HARDSID << 8)
 #define SID_PARSID                (SID_ENGINE_PARSID << 8)

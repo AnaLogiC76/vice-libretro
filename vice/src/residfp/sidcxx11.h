@@ -21,6 +21,10 @@
 #ifndef SIDCXX11_H
 #define SIDCXX11_H
 
+#ifdef __LIBRETRO__
+#define HAVE_CXX11
+#endif
+
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif

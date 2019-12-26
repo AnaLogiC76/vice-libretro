@@ -21,11 +21,17 @@ extern char *strcpy(char *s1, char *s2);
 
 } // extern "C"
 
-#include "builders/residfp-builder/residfp/SID.h"
+#include "builders/residfp-builder/residfp.h"
+#include "sidplayfp/SidConfig.h"
+#include "builders/residfp-builder/residfp-emu.h"
 
-using namespace reSIDfp;
+using libsidplayfp::ReSIDfp;
 
 extern "C" {
+
+/// System event context
+libsidplayfp::EventScheduler eventScheduler;
+struct FakeEvent : public libsidplayfp::Event { FakeEvent() : Event("") { } void event() { } } fakeEvent;
 
 struct sound_s
 {
@@ -33,7 +39,8 @@ struct sound_s
     int factor;
 
     /* resid sid implementation */
-    reSIDfp::SID *sid;
+	ReSIDfpBuilder *sid_builder;
+	ReSIDfp *sid;
 };
 
 typedef struct sound_s sound_t;
@@ -44,7 +51,8 @@ static sound_t *residfp_open(uint8_t *sidstate)
     int i;
 
     psid = new sound_t;
-    psid->sid = new reSIDfp::SID;
+	psid->sid_builder = new ReSIDfpBuilder( "ReSIDfp" );
+	psid->sid_builder->create (1);
 
 #ifdef TODO
     for (i = 0x00; i <= 0x18; i++) {
@@ -55,9 +63,13 @@ static sound_t *residfp_open(uint8_t *sidstate)
     return psid;
 }
 
+static CLOCK last_clk;
+extern CLOCK maincpu_clk;
+
 static int residfp_init(sound_t *psid, int speed, int cycles_per_sec, int factor)
 {
-	SamplingMethod method;
+	SidConfig::sampling_method_t method;
+	bool fast_resampling;
     char model_text[100];
     char method_text[100];
     int filters_enabled, model, sampling, passband_percentage, gain_percentage, filter_bias_mV;
@@ -102,64 +114,58 @@ static int residfp_init(sound_t *psid, int speed, int cycles_per_sec, int factor
         return 0;
     }
 
+	auto es=&eventScheduler;
+
     switch (model) {
       default:
       case 0:
-        psid->sid->setChipModel(MOS6581);
-//        psid->sid->set_voice_mask(0x07);
-        psid->sid->input(0);
+		  psid->sid=(ReSIDfp *)psid->sid_builder->lock(es,SidConfig::MOS6581,false);
         strcpy(model_text, "MOS6581");
         break;
       case 1:
-        psid->sid->setChipModel(MOS8580);
-//        psid->sid->set_voice_mask(0x07);
-        psid->sid->input(0);
+		  psid->sid=(ReSIDfp *)psid->sid_builder->lock(es,SidConfig::MOS8580,false);
         strcpy(model_text, "MOS8580");
         break;
       case 2:
-        psid->sid->setChipModel(MOS8580);
-//        psid->sid->set_voice_mask(0x0f);
-        psid->sid->input(-32768);
+		  psid->sid=(ReSIDfp *)psid->sid_builder->lock(es,SidConfig::MOS8580,true);
         strcpy(model_text, "MOS8580 + digi boost");
         break;
     }
-    psid->sid->enableFilter(filters_enabled ? true : false);
+    psid->sid_builder->filter(filters_enabled ? true : false);
     switch (model) {
       default:
       case 0:
-        psid->sid->setFilter6581Curve(1.0-((filter_bias_mV+5000.0)/10000.0));
+        psid->sid_builder->filter6581Curve(1.0-((filter_bias_mV+5000.0)/10000.0));
         break;
       case 1:
-        psid->sid->setFilter8580Curve(1.0-((filter_bias_mV+5000.0)/10000.0));
+        psid->sid_builder->filter8580Curve(1.0-((filter_bias_mV+5000.0)/10000.0));
         break;
     }
-//    psid->sid->enable_external_filter(filters_enabled ? true : false);
 
     switch (sampling) {
       default:
       case 0:
-        method = DECIMATE;
-        strcpy(method_text, "decimate");
+        fast_resampling = true;
+		method = SidConfig::INTERPOLATE;
+        strcpy(method_text, "fast");
         break;
       case 1:
-        method = RESAMPLE;
-        strcpy(method_text, "resample");
+        fast_resampling = false;
+		method = SidConfig::INTERPOLATE;
+        strcpy(method_text, "interpolate");
+        break;
+      case 2:
+        fast_resampling = false;
+		method = SidConfig::RESAMPLE_INTERPOLATE;
+        strcpy(method_text, "resample_interpolate");
         break;
     }
 
-	try
 	{
-        // from residfp-emu.cpp: Round half frequency to the nearest multiple of 5000
-        const int halfFreq = 5000*((static_cast<int>(speed)+5000)/10000);
-    psid->sid->setSamplingParameters(cycles_per_sec, method,
-                                            speed, std::min(halfFreq, 20000));
+		psid->sid->sampling(cycles_per_sec, speed, method, fast_resampling);
+		psid->sid->bufferpos(0);
+		last_clk=maincpu_clk;
 	}
-	catch (const SIDError &e)
-	{
-        log_warning(LOG_DEFAULT,
-                    "reSID: Out of spec, increase sampling rate or decrease maximum speed");
-        return 0;
-    }
 
 	log_message(LOG_DEFAULT, "reSID-fp: %s, filter %s, sampling rate %dHz - %s",
                 model_text,
@@ -171,23 +177,34 @@ static int residfp_init(sound_t *psid, int speed, int cycles_per_sec, int factor
 
 static void residfp_close(sound_t *psid)
 {
-    delete psid->sid;
+	if (psid->sid)
+		psid->sid_builder->unlock(psid->sid);
+    delete psid->sid_builder;
     delete psid;
+	resid_dump_close();
 }
 
 static uint8_t residfp_read(sound_t *psid, uint16_t addr)
 {
+	eventScheduler.schedule(fakeEvent, maincpu_clk-last_clk, libsidplayfp::EVENT_CLOCK_PHI2);
+	last_clk=maincpu_clk;
+	eventScheduler.clock();
     return psid->sid->read(addr);
 }
 
 static void residfp_store(sound_t *psid, uint16_t addr, uint8_t byte)
 {
+	eventScheduler.schedule(fakeEvent, maincpu_clk-last_clk, libsidplayfp::EVENT_CLOCK_PHI2);
+	last_clk=maincpu_clk;
+	eventScheduler.clock();
     psid->sid->write(addr, byte);
 }
 
 static void residfp_reset(sound_t *psid, CLOCK cpu_clk)
 {
-    psid->sid->reset();
+    eventScheduler.reset();
+    last_clk=0;
+    psid->sid->reset(0);
 }
 
 static int residfp_calculate_samples(sound_t *psid, short *pbuf, int nr,
@@ -197,7 +214,14 @@ static int residfp_calculate_samples(sound_t *psid, short *pbuf, int nr,
     int retval;
 
     if (psid->factor == 1000) {*/
-        int r=psid->sid->clock(*delta_t, pbuf);
+//        int r=psid->sid->clock(*delta_t, pbuf);
+		eventScheduler.schedule(fakeEvent, *delta_t);
+		last_clk+=*delta_t;
+		eventScheduler.clock();
+		psid->sid->clock();
+		int r=psid->sid->bufferpos();
+		memcpy(pbuf,psid->sid->buffer(),r*sizeof(short));
+		psid->sid->bufferpos(0);
 		*delta_t=0;
 		if (interleave!=1)
 			printf("interleave not supported\n");

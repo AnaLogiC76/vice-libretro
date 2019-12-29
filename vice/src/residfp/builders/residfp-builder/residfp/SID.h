@@ -29,6 +29,10 @@
 
 #include "sidcxx11.h"
 
+extern void dbglog(const char *format, ...);
+extern int dbg_resetpos;
+extern int dbg_clock_sum;
+
 namespace reSIDfp
 {
 
@@ -307,10 +311,10 @@ int SID::output() const
     return externalFilter->clock(filter->clock(v1, v2, v3));
 }
 
-
 RESID_INLINE
 int SID::clock(unsigned int cycles, short* buf)
 {
+dbg_clock_sum+=cycles;
     ageBusValue(cycles);
     int s = 0;
 

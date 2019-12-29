@@ -34,6 +34,49 @@
 #include "resample/TwoPassSincResampler.h"
 #include "resample/ZeroOrderResampler.h"
 
+struct DbgFile
+{
+	FILE *f;
+	DbgFile() { f = fopen("d:/temp/global/siddbg.log", "wb"); }
+	void write(const char *b,int s) { fwrite(b, 1, s, f); }
+	~DbgFile() { fclose(f); }
+} dbgfile;
+#include <stdarg.h>
+int dbg_resetpos=-1;
+bool dbg_logpos=false;
+double dbg_rate=1.0;
+int dbg_clock_sum=0;
+int dbg_clock_total=0;
+
+void dbglog(const char *format, ...)
+{
+	va_list args;
+	va_start(args,format);
+	static char buf[16384], format2[16384];
+
+	if (dbg_clock_sum)
+	{
+		int clock=dbg_clock_sum;
+		dbg_clock_sum=0;
+		dbglog("clocks: %d",clock);
+		dbg_clock_total+=clock;
+	}
+
+	if (!dbg_resetpos)
+	{
+		++dbg_resetpos;
+		dbg_logpos=true;
+		dbg_clock_total=0;
+	}
+	if (!dbg_logpos)
+		sprintf(format2, "--------: %s\n", format);
+	else
+		sprintf(format2, "%d: %s\n", (int)(((double)dbg_clock_total)/(985248.0/50.12)), format);
+	int n=vsprintf(buf,format2,args);
+	va_end(args);
+	dbgfile.write(buf,n);
+}
+
 namespace reSIDfp
 {
 
@@ -67,6 +110,7 @@ SID::SID() :
     potX(new Potentiometer()),
     potY(new Potentiometer())
 {
+dbglog("SID::SID");
     voice[0].reset(new Voice());
     voice[1].reset(new Voice());
     voice[2].reset(new Voice());
@@ -79,21 +123,25 @@ SID::SID() :
 
 SID::~SID()
 {
+dbglog("SID::~SID");
     // Needed to delete auto_ptr with complete type
 }
 
 void SID::setFilter6581Curve(double filterCurve)
 {
+dbglog("SID::setFilter6581Curve(%f)",(float)filterCurve);
     filter6581->setFilterCurve(filterCurve);
 }
 
 void SID::setFilter8580Curve(double filterCurve)
 {
+dbglog("SID::setFilter8580Curve(%f)",(float)filterCurve);
     filter8580->setFilterCurve(filterCurve);
 }
 
 void SID::enableFilter(bool enable)
 {
+dbglog("SID::enableFilter(%d)",(int)enable);
     filter6581->enable(enable);
     filter8580->enable(enable);
 }
@@ -129,10 +177,14 @@ void SID::voiceSync(bool sync)
             nextVoiceSync = thisVoiceSync;
         }
     }
+
+if (sync && nextVoiceSync < std::numeric_limits<int>::max())
+dbglog("SID::voiceSync next %d",nextVoiceSync);
 }
 
 void SID::setChipModel(ChipModel model)
 {
+dbglog("SID::setChipModel(%d)",(int)model);
     switch (model)
     {
     case MOS6581:
@@ -165,6 +217,7 @@ void SID::setChipModel(ChipModel model)
 
 void SID::reset()
 {
+dbglog("SID::reset");
     for (int i = 0; i < 3; i++)
     {
         voice[i]->reset();
@@ -186,12 +239,14 @@ void SID::reset()
 
 void SID::input(int value)
 {
+dbglog("SID::input(%d)",value);
     filter6581->input(value);
     filter8580->input(value);
 }
 
 unsigned char SID::read(int offset)
 {
+dbglog("SID::read(%d)",offset);
     switch (offset)
     {
     case 0x19: // X value of paddle
@@ -227,6 +282,9 @@ unsigned char SID::read(int offset)
 
 void SID::write(int offset, unsigned char value)
 {
+	if (1==(value&(8+1)) && (offset==4 || offset==11 || offset==18))
+		++dbg_resetpos;
+dbglog("SID::write(%d,%d)",offset,value);
     busValue = value;
     busValueTtl = modelTTL;
 
@@ -346,6 +404,8 @@ void SID::write(int offset, unsigned char value)
 
 void SID::setSamplingParameters(double clockFrequency, SamplingMethod method, double samplingFrequency, double highestAccurateFrequency)
 {
+	dbg_rate=samplingFrequency;
+dbglog("SID::setSamplingParameters(%f,%d,%f,%f)",clockFrequency,(int)method,samplingFrequency,highestAccurateFrequency);
     externalFilter->setClockFrequency(clockFrequency);
 
     switch (method)
@@ -365,6 +425,7 @@ void SID::setSamplingParameters(double clockFrequency, SamplingMethod method, do
 
 void SID::clockSilent(unsigned int cycles)
 {
+dbglog("SID::clockSilent(%d)",cycles);
     ageBusValue(cycles);
 
     while (cycles != 0)

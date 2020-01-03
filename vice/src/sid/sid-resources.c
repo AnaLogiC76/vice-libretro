@@ -586,9 +586,9 @@ static int sid_check_engine_model(int engine, int model)
         case SID_RESID_8580:
         case SID_RESID_8580D:
 #ifdef __LIBRETRO__
-		case SID_RESIDFP_6581:
-		case SID_RESIDFP_8580:
-		case SID_RESIDFP_8580D:
+        case SID_RESIDFP_6581:
+        case SID_RESIDFP_8580:
+        case SID_RESIDFP_8580D:
 #endif
 #endif
             return 0;

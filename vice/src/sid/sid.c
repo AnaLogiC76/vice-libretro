@@ -56,7 +56,6 @@
 
 #ifdef HAVE_RESID
 #include "resid.h"
-extern sid_engine_t resid_hooks;
 #ifdef __LIBRETRO__
 extern sid_engine_t residfp_hooks;
 #endif
@@ -565,11 +564,10 @@ int sid_sound_machine_cycle_based(void)
             return 0;
 #ifdef HAVE_RESID
         case SID_ENGINE_RESID:
-            return 1;
 #ifdef __LIBRETRO__
         case SID_ENGINE_RESIDFP:
-            return 1;
 #endif
+            return 1;
 #endif
 #ifdef HAVE_CATWEASELMKIII
         case SID_ENGINE_CATWEASELMKIII:

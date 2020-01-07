@@ -45,8 +45,8 @@ SOURCES_CXX += \
         $(EMU)/resid/version.cc \
         $(EMU)/resid/voice.cc \
         $(EMU)/resid/wave.cc \
-        $(EMU)/residfp/residfp.cc \
         $(EMU)/residfp/builders/residfp-builder/residfp/version.cc \
+        $(EMU)/sid/resid-fp.cc \
         $(EMU)/sid/resid.cc
 
 SOURCES_CPP += \

@@ -33,18 +33,6 @@ INCFLAGS += \
         -I$(EMU)/vicii \
         -I$(EMU)/video
 
-SOURCES_CC += \
-		$(EMU)/resid/dac.cc \
-		$(EMU)/resid/envelope.cc \
-		$(EMU)/resid/extfilt.cc \
-		$(EMU)/resid/filter.cc \
-		$(EMU)/resid/pot.cc \
-		$(EMU)/resid/sid.cc \
-		$(EMU)/resid/version.cc \
-		$(EMU)/resid/voice.cc \
-		$(EMU)/resid/wave.cc \
-		$(EMU)/sid/resid.cc
-
 SOURCES_C += \
 		$(EMU)/alarm.c \
 		$(EMU)/attach.c \
@@ -331,15 +319,7 @@ SOURCES_C += \
 		$(EMU)/serial/serial-realdevice.c \
 		$(EMU)/serial/serial-trap.c \
 		$(EMU)/serial/serial.c \
-		$(EMU)/sid/catweaselmkiii.c \
-		$(EMU)/sid/fastsid.c \
-		$(EMU)/sid/hardsid.c \
-		$(EMU)/sid/parsid.c \
-		$(EMU)/sid/sid-cmdline-options.c \
-		$(EMU)/sid/sid-resources.c \
-		$(EMU)/sid/sid-snapshot.c \
-		$(EMU)/sid/sid.c \
-		$(EMU)/sid/ssi2001.c \
+		$(EMU)/sid/no-sid-carts.c \
 		$(EMU)/snapshot.c \
 		$(EMU)/socket.c \
 		$(EMU)/socketdrv/socketdrv.c \

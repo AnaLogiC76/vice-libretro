@@ -125,12 +125,14 @@ static int residfp_init(sound_t *psid, int speed, int cycles_per_sec, int factor
     switch (sampling) {
       default:
       case 0:
-        method = DECIMATE;
-        strcpy(method_text, "decimate");
-        break;
       case 1:
+        method = DECIMATE;
+        strcpy(method_text, "interpolating (ZeroOrderResampler)");
+        break;
+      case 2:
+      case 3:
         method = RESAMPLE;
-        strcpy(method_text, "resample");
+        strcpy(method_text, "resample (TwoPassSincResampler)");
         break;
     }
 

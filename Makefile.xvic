@@ -47,11 +47,9 @@ SOURCES_CXX += \
 		$(EMU)/resid/version.cc \
 		$(EMU)/resid/voice.cc \
 		$(EMU)/resid/wave.cc \
-		$(EMU)/residfp/builders/residfp-builder/residfp/version.cc \
+		$(EMU)/sid/resid.cc \
 		$(EMU)/sid/resid-fp.cc \
-		$(EMU)/sid/resid.cc
-
-SOURCES_CPP += \
+		$(EMU)/residfp/builders/residfp-builder/residfp/version.cc \
 		$(EMU)/residfp/builders/residfp-builder/residfp/Dac.cpp \
 		$(EMU)/residfp/builders/residfp-builder/residfp/EnvelopeGenerator.cpp \
 		$(EMU)/residfp/builders/residfp-builder/residfp/ExternalFilter.cpp \
@@ -67,7 +65,7 @@ SOURCES_CPP += \
 		$(EMU)/residfp/builders/residfp-builder/residfp/SID.cpp \
 		$(EMU)/residfp/builders/residfp-builder/residfp/Spline.cpp \
 		$(EMU)/residfp/builders/residfp-builder/residfp/WaveformCalculator.cpp \
-		$(EMU)/residfp/builders/residfp-builder/residfp/WaveformGenerator.cpp \
+		$(EMU)/residfp/builders/residfp-builder/residfp/WaveformGenerator.cpp
 
 SOURCES_C += \
 		$(EMU)/alarm.c \
